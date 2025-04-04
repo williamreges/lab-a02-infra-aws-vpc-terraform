@@ -5,6 +5,11 @@ terraform {
       version = "~> 5.0"
     }
   }
+  backend "s3" {
+    bucket = "reges-remote-state"
+    key    = "lab-a02-infra-aws-vpc-terraform/terraform.tfstate"
+    region = "sa-east-1"
+  }
 
 }
 

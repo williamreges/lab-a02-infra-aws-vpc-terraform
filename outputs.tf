@@ -1,20 +1,16 @@
-output "private-subnet-1a" {
-  description = "private-subnet-1a"
-  value       = aws_subnet.private-subnet-1a.id
+output "vpc" {
+  description = "VPC"
+  value = aws_vpc.vpc.id
 }
 
-output "private-subnet-1b" {
-  description = "private-subnet-1b"
-  value       = aws_subnet.private-subnet-1b.id
-}
-output "public-subnet-1a" {
-  description = "public-subnet-1a"
-  value       = aws_subnet.public-subnet-1a.id
+output "private-subnets" {
+  description = "private-subnets"
+  value = [for k, v in aws_subnet.private-subnet : v.id]
 }
 
-output "public-subnet-1b" {
-  description = "public-subnet-1b"
-  value       = aws_subnet.public-subnet-1b.id
+output "public-subnets" {
+  description = "public-subnets"
+  value = [for k, v in aws_subnet.public-subnet : v.id]
 }
 
 output "security_group_id_web" {

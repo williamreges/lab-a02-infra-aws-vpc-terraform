@@ -4,7 +4,7 @@
 resource "aws_vpc" "vpc" {
   cidr_block = "10.0.0.0/16"
   tags = {
-    Name = "vpc-${var.environment}"
+    Name = "vpc-${local.tag_enviromnent}"
   }
 }
 
@@ -13,7 +13,7 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name = "gtw-${var.environment}"
+    Name = "gtw-${local.tag_enviromnent}"
   }
 }
 
@@ -27,75 +27,57 @@ resource "aws_route_table" "router-public" {
   }
 
   tags = {
-    Name = "router-public-${var.environment}"
+    Name = "router-public-${local.tag_enviromnent}"
   }
 }
 
-#================== AZ Privado ===================
-# Create SubNet Private 1a
-resource "aws_subnet" "private-subnet-1a" {
+#================== AZ PRIVADO ===================
+# Create Privatte Subnet
+resource "aws_subnet" "private-subnet" {
+  for_each = var.private-subnets
+
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.0.0/24"
-  availability_zone = "${var.regiao}a"
+  cidr_block        = each.value.cidr_block
+  availability_zone = each.value.availability_zone
   tags = {
-    Name = "private-subnet-1a"
+    Name = each.key
   }
 }
 
-# Create SubNet Private 1b
-resource "aws_subnet" "private-subnet-1b" {
+#================= AZ PUBLIC ====================
+
+# Create Public Subnet
+resource "aws_subnet" "public-subnet" {
+  for_each = var.public-subnets
+
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "${var.regiao}b"
+  cidr_block        = each.value.cidr_block
+  availability_zone = each.value.availability_zone
   tags = {
-    Name = "private-subnet-1b"
+    Name = each.key
   }
 }
 
-#============== AZ PUBLIC ==================
-
-# Create Public Subnet 1a
-resource "aws_subnet" "public-subnet-1a" {
-  vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "${var.regiao}a"
-  tags = {
-    Name = "public-subnet-1a"
-  }
-}
-
-resource "aws_route_table_association" "associate_route_table_public_a" {
-  subnet_id      = aws_subnet.public-subnet-1a.id
+resource "aws_route_table_association" "associate_route_table_public" {
+  for_each       = aws_subnet.public-subnet
+  subnet_id      = each.value.id
   route_table_id = aws_route_table.router-public.id
 }
 
-# Create Public Subnet 1b
-resource "aws_subnet" "public-subnet-1b" {
-  vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.3.0/24"
-  availability_zone = "${var.regiao}b"
-  tags = {
-    Name = "public-subnet-1b"
-  }
-}
-
-resource "aws_route_table_association" "associate_route_table_public_b" {
-  subnet_id      = aws_subnet.public-subnet-1b.id
-  route_table_id = aws_route_table.router-public.id
-}
 
 # =============== CREATE SECURITY GROUP ===============================
-# Create Security Group SSH
+# Create Security Group
 resource "aws_security_group" "allow_web" {
-  name        = "allow-web-${var.environment}"
+  name        = "allow-web-${local.tag_enviromnent}"
   description = "Allow WEB inbound traffic and all outbound traffic"
   vpc_id      = aws_vpc.vpc.id
 
   tags = {
-    Name = "sg_allow_web_${var.environment}"
+    Name = "sg_allow_web_${local.tag_enviromnent}"
   }
 }
 
+# Create Ingress Rule SSH
 resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
   security_group_id = aws_security_group.allow_web.id
   cidr_ipv4         = "0.0.0.0/0"
@@ -104,6 +86,7 @@ resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
   to_port           = 22
 }
 
+# Create Ingress Rule WEB
 resource "aws_vpc_security_group_ingress_rule" "allow_web_ipv4" {
   security_group_id = aws_security_group.allow_web.id
   cidr_ipv4         = "0.0.0.0/0"
